@@ -39,5 +39,5 @@ type Part struct {
 	XMLName xml.Name `xml:"Part" json:"-"`
 	Key     string   `xml:"key,attr"`
 	Path    string   `xml:"file,attr"`
-	Size    string   `xml:"size,attr"`
+	Size    uint64   `xml:"size,attr"`
 }

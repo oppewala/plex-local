@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY *.go ./
 
-RUN go build -o /build/main
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /build/main
 
 FROM gcr.io/distroless/base-debian10
 
