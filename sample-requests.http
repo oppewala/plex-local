@@ -1,0 +1,16 @@
+
+GET http://localhost:8080/library
+
+####
+
+GET http://localhost:8080/library/3/media
+
+####
+
+GET http://localhost:8080/media/8086
+
+###
+
+POST http://localhost:8080/media/8086/download
+
+####
