@@ -1,8 +1,8 @@
+github.com/alediaferia/prefixmap v1.0.1 h1:MnlMtO77dZkDgTSaQeiGW1W2NOFTSKcUh4rl57EqcIc=
+github.com/alediaferia/prefixmap v1.0.1/go.mod h1:OoVudMbSvqhz1WD0+QMmd8vhye19e3k51n69J1dr3+0=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/gorilla/mux v1.7.4 h1:VuZ8uybHlWmqV03+zRzdwKL4tUnIp1MAQtp1mIFE1bc=
 github.com/gorilla/mux v1.7.4/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
-github.com/streadway/amqp v1.0.0 h1:kuuDrUJFZL1QYL9hUNuCxNObNzB0bV/ZG5jV3RWAQgo=
-github.com/streadway/amqp v1.0.0/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
-github.com/wagslane/go-rabbitmq v0.6.2 h1:2t7GuMBvbJaM8jQGsyZMsdE/eoeve1Z+/pP/ZqabQO8=
-github.com/wagslane/go-rabbitmq v0.6.2/go.mod h1:Tu4DtAT7Ta9oKhHgEj29QEtIaA/jLLGLkleA/csZoOs=
+gopkg.in/alediaferia/stackgo.v1 v1.1.1 h1:htUbPM2OVv8njXgNngn7sXYNQXMgAfRfCYtugsIpGXo=
+gopkg.in/alediaferia/stackgo.v1 v1.1.1/go.mod h1:zCaxPo2py6RpzzpTw6cgT365QmkJ+4ySaVX5ZCOYLIQ=

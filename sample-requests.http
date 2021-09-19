@@ -14,3 +14,5 @@ GET http://localhost:8080/media/8086
 POST http://localhost:8080/media/8086/download
 
 ####
+
+GET http://localhost:8080/search?q=h

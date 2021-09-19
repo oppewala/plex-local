@@ -11,29 +11,25 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/streadway/amqp"
-	"github.com/wagslane/go-rabbitmq"
 )
 
-var plexUrl string
-var plexToken string
-var rUrl string
-var requestQueue = "video-request"
+var (
+	plexUrl      = os.Getenv("PLEX_URL")
+	plexToken    = os.Getenv("PLEX_TOKEN")
+	requestQueue = make(chan *Video)
+)
 
 func main() {
-	plexUrl = os.Getenv("PLEX_URL")
-	plexToken = os.Getenv("PLEX_TOKEN")
-	rUrl = os.Getenv("RABBITMQ_CONNECTION")
-
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/library", getSections).Methods("GET")
-	router.HandleFunc("/library/{section}/media", getSectionMedia).Methods("GET")
-	router.HandleFunc("/media/{media}", getMediaMetadata).Methods("GET")
-	router.HandleFunc("/media/{media}/download", queue).Methods("POST")
+	router.HandleFunc("/library", getLibraries).Methods("GET")
+	router.HandleFunc("/library/{key}/media", getLibraryContent).Methods("GET")
+	router.HandleFunc("/media/{key}", getMediaMetadata).Methods("GET")
+	router.HandleFunc("/media/{key}/download", postQueue).Methods("POST")
+	router.HandleFunc("/search", getSearch).Queries("q", "{query}").Methods("GET")
 	router.Use(loggingMiddleware)
 
 	port := "8080"
@@ -45,25 +41,18 @@ func main() {
 		Handler:      router,
 	}
 
-	log.Printf("Starting queue consumer: %s", requestQueue)
-	var err error
-	for i := 1; i < 5; i++ {
-		err = startConsumer()
-		if err != nil && i != 4 {
-			log.Printf("Failed to start, retrying: %v", err)
-
-			time.Sleep(time.Second * 5)
-		}
-	}
-	if err != nil {
-		log.Fatalf("Failed to start: %v", err)
-	}
+	log.Printf("Starting queue consumer")
+	go chanConsumer()
 
 	log.Printf("Starting server on :%v", port)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Println(err)
 		}
+	}()
+
+	go func() {
+		populateTitles()
 	}()
 
 	c := make(chan os.Signal, 1)
@@ -85,26 +74,6 @@ func main() {
 	// to finalize based on context cancellation.
 	log.Println("shutting down")
 	os.Exit(0)
-}
-
-func startConsumer() error {
-	rConf := amqp.Config{}
-	consumer, err := rabbitmq.NewConsumer(rUrl, rConf)
-	if err != nil {
-		return fmt.Errorf("failed to create consumer: %v", err)
-	}
-
-	err = consumer.StartConsuming(
-		consumeDownload,
-		requestQueue,
-		[]string{requestQueue},
-		rabbitmq.WithConsumeOptionsConcurrency(1),
-		rabbitmq.WithConsumeOptionsQueueDurable)
-	if err != nil {
-		return fmt.Errorf("failed to start consumer: %v", err)
-	}
-
-	return nil
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

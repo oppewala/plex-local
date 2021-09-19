@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/wagslane/go-rabbitmq"
 )
 
 type DownloadTracker struct {
@@ -19,6 +17,7 @@ type DownloadTracker struct {
 	Total         uint64
 	ExpectedTotal uint64
 	NextPrint     time.Time
+	StartTime     time.Time
 }
 
 func (wc *DownloadTracker) Write(p []byte) (int, error) {
@@ -28,36 +27,37 @@ func (wc *DownloadTracker) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-func (wc DownloadTracker) PrintProgress() {
+func (wc *DownloadTracker) PrintProgress() {
 	if time.Now().After(wc.NextPrint) {
-		log.Printf("Downloading... %s / %s", humanize.Bytes(wc.Total), humanize.Bytes(wc.ExpectedTotal))
+		diff := time.Now().Sub(wc.StartTime).Nanoseconds()
+		estRemaining := uint64(diff) * ((wc.ExpectedTotal - wc.Total) / wc.Total)
+		estComplete := time.Now().Add(time.Duration(estRemaining))
+
+		log.Printf("Diff: %v | Remaining: %v | Complete: %v", diff, estRemaining, estComplete)
+
+		log.Printf("Downloading... %s / %s (%v%%)", humanize.Bytes(wc.Total), humanize.Bytes(wc.ExpectedTotal), wc.Total/wc.ExpectedTotal)
 		wc.NextPrint = time.Now().Add(time.Second * 5)
 	}
 
 	return
 }
 
-func consumeDownload(d rabbitmq.Delivery) bool {
-	log.Printf("Message Consumed: %v", string(d.Body))
+func chanConsumer() {
+	for {
+		v := <-requestQueue
+		log.Printf("Message Consumed: %v", v)
 
-	v := &Video{}
-	err := json.Unmarshal(d.Body, v)
-	if err != nil {
-		log.Printf("Failed to unmarshal json to video")
+		err := downloadMedia(*v)
+		if err != nil {
+			log.Printf("Failed to download %v: %v", v.Media.Parts[0].Key, err)
+			continue
+		}
+
+		log.Printf("Downloaded succesfully: %v", v.Title)
 	}
-
-	err = downloadMedia(v)
-	if err != nil {
-		log.Printf("Failed to download %v: %v", v.Media.Parts[0].Key, err)
-		return true
-	}
-
-	log.Printf("Downloaded succesfully: %v", v.Title)
-
-	return true
 }
 
-func downloadMedia(v *Video) error {
+func downloadMedia(v Video) error {
 	part := v.Media.Parts[0]
 
 	path := fmt.Sprintf("/data/local%s", part.Path)
@@ -88,6 +88,7 @@ func downloadMedia(v *Video) error {
 		Title:         v.Title,
 		ExpectedTotal: part.Size,
 		NextPrint:     time.Now(),
+		StartTime:     time.Now(),
 	}
 	_, err = io.Copy(file, io.TeeReader(res.Body, counter))
 	if err != nil {
