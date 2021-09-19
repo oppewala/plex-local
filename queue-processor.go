@@ -12,6 +12,8 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
+var requestQueue = make(chan *Video)
+
 type DownloadTracker struct {
 	Title         string
 	Total         uint64
@@ -98,6 +100,8 @@ func downloadMedia(v Video) error {
 	log.Printf("Closing file and renaming to final path: %v", path)
 	file.Close()
 	err = os.Rename(path+".tmp", path)
+
+	// TODO: Notify autoscan and/or plex
 
 	return err
 }

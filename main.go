@@ -14,9 +14,8 @@ import (
 )
 
 var (
-	plexUrl      = os.Getenv("PLEX_URL")
-	plexToken    = os.Getenv("PLEX_TOKEN")
-	requestQueue = make(chan *Video)
+	plexUrl   = os.Getenv("PLEX_URL")
+	plexToken = os.Getenv("PLEX_TOKEN")
 )
 
 func main() {
