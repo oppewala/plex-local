@@ -46,11 +46,14 @@ func populateTitles() error {
 		}
 
 		log.Printf("[Search][%s (%v)] Inserting %v titles", lib.Title, lib.Key, len(lc.Videos))
+		// TODO: Handle Anime/TV
 		for _, v := range lc.Videos {
+			// TODO: should map to media key
 			media[v.Title] = v
 
 			parts := strings.Split(strings.ToLower(v.Title), " ")
 			for _, p := range parts {
+				// TODO: should map to media key
 				titles.Insert(p, v.Title)
 			}
 
