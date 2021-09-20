@@ -29,6 +29,7 @@ func main() {
 	router.HandleFunc("/media/{key}", getMediaMetadata).Methods("GET")
 	router.HandleFunc("/media/{key}/download", postQueue).Methods("POST")
 	router.HandleFunc("/search", getSearch).Queries("q", "{query}").Methods("GET")
+	router.HandleFunc("/status", wsStatus)
 	router.Use(loggingMiddleware)
 
 	port := "8080"

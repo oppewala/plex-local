@@ -37,7 +37,9 @@ func (wc *DownloadTracker) PrintProgress() {
 
 		log.Printf("Diff: %v | Remaining: %v | Complete: %v", diff, estRemaining, estComplete)
 
-		log.Printf("Downloading... %s / %s (%v%%)", humanize.Bytes(wc.Total), humanize.Bytes(wc.ExpectedTotal), wc.Total/wc.ExpectedTotal)
+		msg := fmt.Sprintf("Downloading... %s / %s (%v%%)", humanize.Bytes(wc.Total), humanize.Bytes(wc.ExpectedTotal), wc.Total/wc.ExpectedTotal)
+		videoStatus <- wc
+		log.Print(msg)
 		wc.NextPrint = time.Now().Add(time.Second * 5)
 	}
 
