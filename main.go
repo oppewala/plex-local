@@ -23,13 +23,23 @@ func main() {
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
 	flag.Parse()
 
+	go func() {
+		populateTitles()
+	}()
+
+	var hub = newHub()
+	go hub.run()
+	go chanConsumer(hub)
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/library", getLibraries).Methods("GET")
 	router.HandleFunc("/library/{key}/media", getLibraryContent).Methods("GET")
 	router.HandleFunc("/media/{key}", getMediaMetadata).Methods("GET")
 	router.HandleFunc("/media/{key}/download", postQueue).Methods("POST")
 	router.HandleFunc("/search", getSearch).Queries("q", "{query}").Methods("GET")
-	router.HandleFunc("/status", wsStatus)
+	router.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
+		ws(writer, request, hub)
+	})
 	router.Use(loggingMiddleware)
 
 	port := "8080"
@@ -41,18 +51,11 @@ func main() {
 		Handler:      router,
 	}
 
-	log.Printf("Starting queue consumer")
-	go chanConsumer()
-
 	log.Printf("Starting server on :%v", port)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
-	}()
-
-	go func() {
-		populateTitles()
 	}()
 
 	c := make(chan os.Signal, 1)

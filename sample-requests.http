@@ -1,18 +1,19 @@
+### GET Libraries
 
 GET http://localhost:8080/library
 
-####
+### GET Specific Library
 
 GET http://localhost:8080/library/3/media
 
-####
+### GET Media Metadata
 
 GET http://localhost:8080/media/8086
 
-###
+### POST Download request
 
 POST http://localhost:8080/media/8086/download
 
-####
+### GET Search results
 
 GET http://localhost:8080/search?q=Up

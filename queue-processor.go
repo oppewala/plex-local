@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -8,50 +9,51 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/dustin/go-humanize"
 )
 
 var requestQueue = make(chan *Video)
 
+type DownloadUpdate struct {
+	Title           string
+	BytesDownloaded uint64
+	TotalBytes      uint64
+}
+
 type DownloadTracker struct {
 	Title         string
+	Key           string
 	Total         uint64
 	ExpectedTotal uint64
-	NextPrint     time.Time
+	NextUpdate    time.Time
 	StartTime     time.Time
+	Hub           *Hub
 }
 
 func (wc *DownloadTracker) Write(p []byte) (int, error) {
 	n := len(p)
 	wc.Total += uint64(n)
-	wc.PrintProgress()
+
+	if time.Now().After(wc.NextUpdate) {
+		update := &DownloadUpdate{
+			Title:           wc.Title,
+			BytesDownloaded: wc.Total,
+			TotalBytes:      wc.ExpectedTotal,
+		}
+		j, _ := json.Marshal(update)
+		wc.Hub.broadcast <- j
+
+		wc.NextUpdate = time.Now().Add(time.Second)
+	}
+
 	return n, nil
 }
 
-func (wc *DownloadTracker) PrintProgress() {
-	if time.Now().After(wc.NextPrint) {
-		diff := time.Now().Sub(wc.StartTime).Nanoseconds()
-		estRemaining := uint64(diff) * ((wc.ExpectedTotal - wc.Total) / wc.Total)
-		estComplete := time.Now().Add(time.Duration(estRemaining))
-
-		log.Printf("Diff: %v | Remaining: %v | Complete: %v", diff, estRemaining, estComplete)
-
-		msg := fmt.Sprintf("Downloading... %s / %s (%v%%)", humanize.Bytes(wc.Total), humanize.Bytes(wc.ExpectedTotal), wc.Total/wc.ExpectedTotal)
-		videoStatus <- wc
-		log.Print(msg)
-		wc.NextPrint = time.Now().Add(time.Second * 5)
-	}
-
-	return
-}
-
-func chanConsumer() {
+func chanConsumer(hub *Hub) {
 	for {
 		v := <-requestQueue
 		log.Printf("Message Consumed: %v", v)
 
-		err := downloadMedia(*v)
+		err := downloadMedia(*v, hub)
 		if err != nil {
 			log.Printf("Failed to download %v: %v", v.Media.Parts[0].Key, err)
 			continue
@@ -61,7 +63,7 @@ func chanConsumer() {
 	}
 }
 
-func downloadMedia(v Video) error {
+func downloadMedia(v Video, hub *Hub) error {
 	part := v.Media.Parts[0]
 
 	path := fmt.Sprintf("/data/local%s", part.Path)
@@ -90,9 +92,10 @@ func downloadMedia(v Video) error {
 	log.Printf("Starting write")
 	counter := &DownloadTracker{
 		Title:         v.Title,
+		Key:           v.Key,
 		ExpectedTotal: part.Size,
-		NextPrint:     time.Now(),
 		StartTime:     time.Now(),
+		Hub:           hub,
 	}
 	_, err = io.Copy(file, io.TeeReader(res.Body, counter))
 	if err != nil {

@@ -20,6 +20,7 @@ type Library struct {
 	Key     string   `xml:"key,attr"`
 }
 
+// VideoContainer returns from the library sections API when querying a movie or tvshow with /allLeaves
 type VideoContainer struct {
 	XMLName  xml.Name `xml:"MediaContainer" json:"-"`
 	Title    string   `xml:"title1,attr"`
