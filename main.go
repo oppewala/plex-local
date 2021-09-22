@@ -26,7 +26,8 @@ func main() {
 	flag.Parse()
 
 	go func() {
-		populateTitles()
+		err := populateTitles()
+		log.Printf("failed to populate titles: %v", err)
 	}()
 
 	s = plex.NewServer(plexUrl, plexToken)

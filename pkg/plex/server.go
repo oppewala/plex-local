@@ -76,7 +76,7 @@ func (s *Server) GetMediaMetadata(key string) (Metadata, error) {
 	rootRequest := fmt.Sprintf("/library/metadata/%s", key)
 	body, err := s.executeGet(rootRequest)
 	if err != nil {
-		fmt.Errorf("failed to get root metadata")
+		err = fmt.Errorf("failed to get root metadata: %w", err)
 		return Metadata{}, err
 	}
 
@@ -95,7 +95,7 @@ func (s *Server) GetMediaMetadataChildren(key string) ([]Metadata, error) {
 	rootRequest := fmt.Sprintf("/library/metadata/%s/children", key)
 	body, err := s.executeGet(rootRequest)
 	if err != nil {
-		fmt.Errorf("failed to get root metadata")
+		err = fmt.Errorf("failed to get root metadata: %w", err)
 		return nil, err
 	}
 

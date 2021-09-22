@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/oppewala/plex-local-dl/pkg/plex"
 )
 
 func getLibraries(w http.ResponseWriter, _ *http.Request) {
@@ -66,12 +67,12 @@ func postQueue(w http.ResponseWriter, r *http.Request) {
 	log.Printf(l)
 
 	for _, part := range parts {
-		go func() {
+		go func(p plex.Part) {
 			requestQueue <- DownloadRequest{
 				Metadata: m,
-				Part:     part,
+				Part:     p,
 			}
-		}()
+		}(part)
 	}
 
 	j, _ := json.Marshal(struct {
