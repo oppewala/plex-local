@@ -72,12 +72,12 @@ func (s *Server) GetLibraryContent(key string) ([]Metadata, error) {
 	return l.MediaContainer.Metadata, nil
 }
 
-func (s *Server) GetMediaMetadata(key string) ([]Metadata, error) {
+func (s *Server) GetMediaMetadata(key string) (Metadata, error) {
 	rootRequest := fmt.Sprintf("/library/metadata/%s", key)
 	body, err := s.executeGet(rootRequest)
 	if err != nil {
 		fmt.Errorf("failed to get root metadata")
-		return nil, err
+		return Metadata{}, err
 	}
 
 	l := &ResponseRoot{}
@@ -85,10 +85,10 @@ func (s *Server) GetMediaMetadata(key string) ([]Metadata, error) {
 	if err != nil {
 		log.Printf("%v", string(body))
 		err = fmt.Errorf("failed to convert body from json \n%w", err)
-		return nil, err
+		return Metadata{}, err
 	}
 
-	return l.MediaContainer.Metadata, nil
+	return l.MediaContainer.Metadata[0], nil
 }
 
 func (s *Server) GetMediaMetadataChildren(key string) ([]Metadata, error) {
@@ -116,20 +116,28 @@ func (s *Server) GetMediaParts(key string) ([]Part, error) {
 		return nil, err
 	}
 
-	if m[0].Type == "movie" || m[0].Type == "episode" {
-		return m[0].Media[0].Part, nil
-	}
-
-	if m[0].Type == "show" {
-		m, err = s.GetMediaMetadataChildren(key)
+	var seasons []Metadata
+	switch m.Type {
+	case "movie":
+		return m.Media[0].Part, nil
+	case "episode":
+		return m.Media[0].Part, nil
+	case "show":
+		seasons, err = s.GetMediaMetadataChildren(key)
 		if err != nil {
 			err = fmt.Errorf("failed while retrieving child metadata for show with key %s: %w", key, err)
 			return nil, err
 		}
+	case "season":
+		seasons = make([]Metadata, 1)
+		seasons[0] = m
+	default:
+		err = fmt.Errorf("unhandled metadata type: %s", m.Type)
+		return nil, err
 	}
 
 	p := make([]Part, 0)
-	for _, season := range m {
+	for _, season := range seasons {
 		episodes, err := s.GetMediaMetadataChildren(season.RatingKey)
 		if err != nil {
 			err = fmt.Errorf("failed while retrieving child metadata for season with key %s: %w", season.RatingKey, err)

@@ -57,7 +57,7 @@ type Part struct {
 	Key          string `json:"key"`
 	Duration     int    `json:"duration"`
 	File         string `json:"file"`
-	Size         int    `json:"size"`
+	Size         uint64 `json:"size"`
 	Container    string `json:"container"`
 	VideoProfile string `json:"videoProfile"`
 }
@@ -88,7 +88,7 @@ type Metadata struct {
 	Key                  string `json:"key"`
 	ParentRatingKey      string `json:"parentRatingKey"`
 	GrandparentRatingKey string `json:"grandparentRatingKey"`
-	//GUID                  string     `json:"guid"`
+	//GUID                  string     `json:"guid"` // Some media returns 2 guid properties...
 	Studio                string     `json:"studio"`
 	Type                  string     `json:"type"`
 	Title                 string     `json:"title"`
@@ -134,7 +134,7 @@ type Metadata struct {
 	Theme                 string     `json:"theme,omitempty"`
 	SkipCount             int        `json:"skipCount,omitempty"`
 	UserRating            float64    `json:"userRating,omitempty"`
-	//Guid []GUID `json:"GUID,omitempty"`
+	//Guid []GUID `json:"GUID,omitempty"` // Some media returns 2 guid properties...
 }
 type MediaContainer struct {
 	Size                int         `json:"size"`

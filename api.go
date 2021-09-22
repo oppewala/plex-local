@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -36,45 +35,50 @@ func getLibraryContent(w http.ResponseWriter, r *http.Request) {
 }
 
 func getMediaMetadata(w http.ResponseWriter, r *http.Request) {
-	sk := mux.Vars(r)["key"]
-	k, err := strconv.Atoi(sk)
-	if err != nil {
-		err = fmt.Errorf("Media key must be an int (%s) \n %v", sk, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	k := mux.Vars(r)["key"]
 
-	v, err := fetchVideo(k)
+	v, err := s.GetMediaMetadata(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	j, _ := json.Marshal(v)
-
 	_, _ = w.Write(j)
 }
 
 func postQueue(w http.ResponseWriter, r *http.Request) {
-	sk := mux.Vars(r)["key"]
-	k, err := strconv.Atoi(sk)
-	if err != nil {
-		err = fmt.Errorf("Media key must be an int (%s) \n %v", sk, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	k := mux.Vars(r)["key"]
 
-	v, err := fetchVideo(k)
+	m, err := s.GetMediaMetadata(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Queuing download of media (%v - %v - %v)", v.Key, v.Title, v.Media.Parts[0].Path)
+	parts, err := s.GetMediaParts(k)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	go func() { requestQueue <- v }()
+	l := fmt.Sprintf("Queuing download of media (%s - %s)", k, m.ConcatTitles())
+	log.Printf(l)
 
-	j, _ := json.Marshal(v)
+	for _, part := range parts {
+		go func() {
+			requestQueue <- DownloadRequest{
+				Metadata: m,
+				Part:     part,
+			}
+		}()
+	}
+
+	j, _ := json.Marshal(struct {
+		log string
+	}{
+		log: l,
+	})
 	_, _ = w.Write(j)
 }
 

@@ -9,9 +9,16 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/oppewala/plex-local-dl/pkg/plex"
 )
 
-var requestQueue = make(chan *Video)
+var requestQueue = make(chan DownloadRequest)
+
+type DownloadRequest struct {
+	Metadata plex.Metadata
+	Part     plex.Part
+}
 
 type DownloadUpdate struct {
 	Title           string
@@ -50,24 +57,22 @@ func (wc *DownloadTracker) Write(p []byte) (int, error) {
 
 func chanConsumer(hub *Hub) {
 	for {
-		v := <-requestQueue
-		log.Printf("Message Consumed: %v", v)
+		r := <-requestQueue
+		log.Printf("Message Consumed: %v", r)
 
-		err := downloadMedia(*v, hub)
+		err := downloadMedia(r, hub)
 		if err != nil {
-			log.Printf("Failed to download %v: %v", v.Media.Parts[0].Key, err)
+			log.Printf("Failed to download %v: %v", r.Metadata.ConcatTitles(), err)
 			continue
 		}
 
-		log.Printf("Downloaded succesfully: %v", v.Title)
+		log.Printf("Downloaded succesfully: %v", r.Metadata.ConcatTitles())
 	}
 }
 
-func downloadMedia(v Video, hub *Hub) error {
-	part := v.Media.Parts[0]
-
-	path := fmt.Sprintf("/data/local%s", part.Path)
-	log.Printf("Downloading from %v to %v", part.Key, path)
+func downloadMedia(r DownloadRequest, hub *Hub) error {
+	path := fmt.Sprintf("/data/local%s", r.Part.File)
+	log.Printf("Downloading from %v to %v", r.Part.Key, path)
 
 	log.Printf("Creating directory: %v", filepath.Dir(path))
 	err := os.MkdirAll(filepath.Dir(path), 0755)
@@ -83,7 +88,7 @@ func downloadMedia(v Video, hub *Hub) error {
 	defer file.Close()
 
 	log.Printf("Creating request")
-	res, err := http.Get(fmt.Sprintf("%v%v?X-Plex-Token=%v", plexUrl, part.Key, plexToken))
+	res, err := http.Get(fmt.Sprintf("%v%v?X-Plex-Token=%v", plexUrl, r.Part.Key, plexToken))
 	if err != nil {
 		return err
 	}
@@ -91,9 +96,9 @@ func downloadMedia(v Video, hub *Hub) error {
 
 	log.Printf("Starting write")
 	counter := &DownloadTracker{
-		Title:         v.Title,
-		Key:           v.Key,
-		ExpectedTotal: part.Size,
+		Title:         r.Metadata.ConcatTitles(),
+		Key:           r.Part.Key,
+		ExpectedTotal: r.Part.Size,
 		StartTime:     time.Now(),
 		Hub:           hub,
 	}

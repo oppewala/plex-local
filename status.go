@@ -118,6 +118,7 @@ func (c *Client) readPump() {
 		log.Printf("[WS] Message received: %v", message)
 
 		// TODO: Handle incoming messages
+		// Income Message type: Cancel download
 		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//c.hub.broadcast <- message
 	}
