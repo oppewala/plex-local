@@ -116,14 +116,11 @@ func (s *Server) GetMediaParts(key string) ([]Part, error) {
 		return nil, err
 	}
 
-	// Movie or episode requested
 	if m[0].Type == "movie" || m[0].Type == "episode" {
 		return m[0].Media[0].Part, nil
 	}
 
-	// key = 3298 - show
 	if m[0].Type == "show" {
-		// m = Metadata per season
 		m, err = s.GetMediaMetadataChildren(key)
 		if err != nil {
 			err = fmt.Errorf("failed while retrieving child metadata for show with key %s: %w", key, err)
@@ -132,14 +129,14 @@ func (s *Server) GetMediaParts(key string) ([]Part, error) {
 	}
 
 	p := make([]Part, 0)
-	for _, ms := range m {
-		msc, err := s.GetMediaMetadataChildren(ms.RatingKey)
+	for _, season := range m {
+		episodes, err := s.GetMediaMetadataChildren(season.RatingKey)
 		if err != nil {
-			err = fmt.Errorf("failed while retrieving child metadata for season with key %s: %w", ms.RatingKey, err)
+			err = fmt.Errorf("failed while retrieving child metadata for season with key %s: %w", season.RatingKey, err)
 			return nil, err
 		}
 
-		for _, e := range msc {
+		for _, e := range episodes {
 			p = append(p, e.Media[0].Part...)
 		}
 	}
