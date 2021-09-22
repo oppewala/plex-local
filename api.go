@@ -11,7 +11,7 @@ import (
 )
 
 func getLibraries(w http.ResponseWriter, _ *http.Request) {
-	l, err := fetchLibraries()
+	l, err := s.GetLibraries()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -23,15 +23,9 @@ func getLibraries(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getLibraryContent(w http.ResponseWriter, r *http.Request) {
-	sk := mux.Vars(r)["key"]
-	k, err := strconv.Atoi(sk)
-	if err != nil {
-		err = fmt.Errorf("Library key must be an int (%s) \n %v", sk, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	k := mux.Vars(r)["key"]
 
-	c, err := fetchLibraryContent(k)
+	c, err := s.GetLibraryContent(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -90,4 +84,19 @@ func getSearch(w http.ResponseWriter, r *http.Request) {
 
 	j, _ := json.Marshal(results)
 	_, _ = w.Write(j)
+}
+
+func getMediaParts(w http.ResponseWriter, r *http.Request) {
+	sk := mux.Vars(r)["key"]
+
+	p, err := s.GetMediaParts(sk)
+	if err != nil {
+		log.Printf("%v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	j, _ := json.Marshal(p)
+	_, _ = w.Write(j)
+
 }

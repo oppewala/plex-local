@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/oppewala/plex-local-dl/pkg/plex"
 )
 
 var (
 	plexUrl   = os.Getenv("PLEX_URL")
 	plexToken = os.Getenv("PLEX_TOKEN")
+	s         *plex.Server
 )
 
 func main() {
@@ -27,6 +29,8 @@ func main() {
 		populateTitles()
 	}()
 
+	s = plex.NewServer(plexUrl, plexToken)
+
 	var hub = newHub()
 	go hub.run()
 	go chanConsumer(hub)
@@ -35,6 +39,7 @@ func main() {
 	router.HandleFunc("/library", getLibraries).Methods("GET")
 	router.HandleFunc("/library/{key}/media", getLibraryContent).Methods("GET")
 	router.HandleFunc("/media/{key}", getMediaMetadata).Methods("GET")
+	router.HandleFunc("/media/{key}/parts", getMediaParts).Methods("GET")
 	router.HandleFunc("/media/{key}/download", postQueue).Methods("POST")
 	router.HandleFunc("/search", getSearch).Queries("q", "{query}").Methods("GET")
 	router.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {

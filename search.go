@@ -5,10 +5,10 @@ import (
 	"log"
 	"math"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/alediaferia/prefixmap"
+	"github.com/oppewala/plex-local-dl/pkg/plex"
 )
 
 type Match struct {
@@ -24,12 +24,12 @@ func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 var similarity = 0.3
 var titles = prefixmap.New()
-var media = make(map[string]Video)
+var media = make(map[string]plex.Metadata)
 
 func populateTitles() error {
 	log.Printf("[Search] Starting library indexing")
 
-	libs, err := fetchLibraries()
+	libs, err := s.GetLibraries()
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve libraries\n %v", err)
 		return err
@@ -37,17 +37,16 @@ func populateTitles() error {
 
 	log.Printf("[Search] Retrieving library contents")
 
-	for _, lib := range libs.Libraries {
+	for _, lib := range libs {
 		log.Printf("[Search][%s (%v)] Retrieving library contents ", lib.Title, lib.Key)
-		k, _ := strconv.Atoi(lib.Key)
-		lc, err := fetchLibraryContent(k)
+		lc, err := s.GetLibraryContent(lib.Key)
 		if err != nil {
 			err = fmt.Errorf("failed to retrieve library content ([%v] %s)\n%v", lib.Key, lib.Title, err)
 		}
 
-		log.Printf("[Search][%s (%v)] Inserting %v titles", lib.Title, lib.Key, len(lc.Videos))
+		log.Printf("[Search][%s (%v)] Inserting %v titles", lib.Title, lib.Key, len(lc))
 		// TODO: Handle Anime/TV
-		for _, v := range lc.Videos {
+		for _, v := range lc {
 			// TODO: should map to media key
 			media[v.Title] = v
 
@@ -70,7 +69,7 @@ func populateTitles() error {
 	return nil
 }
 
-func search(input string) []*Video {
+func search(input string) []*plex.Metadata {
 	log.Printf("[Search] Starting for %s", input)
 	values := titles.GetByPrefix(strings.ToLower(input))
 	log.Printf("[Search] Found %v raw results", len(values))
@@ -83,11 +82,12 @@ func search(input string) []*Video {
 		results = append(results, m)
 	}
 
+	// TODO: Prefer titles starting with search term
 	log.Printf("[Search] Found %v results after Levenshtein filter", len(results))
 
 	sort.Sort(results)
 
-	videos := make([]*Video, 0, len(results))
+	videos := make([]*plex.Metadata, 0, len(results))
 	for _, r := range results {
 		v := media[r.Value]
 		videos = append(videos, &v)
