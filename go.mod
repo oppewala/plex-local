@@ -7,5 +7,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.2
+	github.com/rs/cors v1.8.0
 	gopkg.in/alediaferia/stackgo.v1 v1.1.1 // indirect
 )

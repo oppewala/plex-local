@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/oppewala/plex-local-dl/pkg/plex"
+	"github.com/rs/cors"
 )
 
 var (
@@ -27,7 +28,9 @@ func main() {
 
 	go func() {
 		err := populateTitles()
-		log.Printf("failed to populate titles: %v", err)
+		if err != nil {
+			log.Printf("failed to populate titles: %v", err)
+		}
 	}()
 
 	s = plex.NewServer(plexUrl, plexToken)
@@ -35,18 +38,26 @@ func main() {
 	var hub = newHub()
 	go hub.run()
 	go chanConsumer(hub)
+	go func() {
+		for {
+			hub.broadcast <- Ping{}
+			time.Sleep(time.Second)
+		}
+	}()
 
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/library", getLibraries).Methods("GET")
-	router.HandleFunc("/library/{key}/media", getLibraryContent).Methods("GET")
-	router.HandleFunc("/media/{key}", getMediaMetadata).Methods("GET")
-	router.HandleFunc("/media/{key}/parts", getMediaParts).Methods("GET")
-	router.HandleFunc("/media/{key}/download", postQueue).Methods("POST")
-	router.HandleFunc("/search", getSearch).Queries("q", "{query}").Methods("GET")
-	router.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc("/api/library", getLibraries).Methods(http.MethodGet)
+	router.HandleFunc("/api/library/{key}/media", getLibraryContent).Methods(http.MethodGet)
+	router.HandleFunc("/api/media/{key}", getMediaMetadata).Methods(http.MethodGet)
+	router.HandleFunc("/api/media/{key}/parts", getMediaParts).Methods(http.MethodGet)
+	router.HandleFunc("/api/media/{key}/download", postQueue).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/api/search", getSearch).Queries("q", "{query}").Methods(http.MethodGet)
+	router.HandleFunc("/api/ws", func(writer http.ResponseWriter, request *http.Request) {
 		ws(writer, request, hub)
 	})
 	router.Use(loggingMiddleware)
+
+	co := cors.AllowAll()
 
 	port := "8080"
 	srv := &http.Server{
@@ -54,7 +65,7 @@ func main() {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      router,
+		Handler:      co.Handler(router),
 	}
 
 	log.Printf("Starting server on :%v", port)
@@ -87,10 +98,10 @@ func main() {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request received: %s", r.RequestURI)
+		log.Printf("[API] Request received: %s", r.RequestURI)
 
 		next.ServeHTTP(w, r)
 
-		log.Printf("Request complete: %s", r.RequestURI)
+		log.Printf("[API] Request complete: %s", r.RequestURI)
 	})
 }

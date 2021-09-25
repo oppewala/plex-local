@@ -21,6 +21,7 @@ type DownloadRequest struct {
 }
 
 type DownloadUpdate struct {
+	MessageType string
 	Title           string
 	BytesDownloaded uint64
 	TotalBytes      uint64
@@ -36,18 +37,24 @@ type DownloadTracker struct {
 	Hub           *Hub
 }
 
+func (u *DownloadUpdate) ToBytes() []byte {
+	j, _ := json.Marshal(u)
+
+	return j
+}
+
 func (wc *DownloadTracker) Write(p []byte) (int, error) {
 	n := len(p)
 	wc.Total += uint64(n)
 
 	if time.Now().After(wc.NextUpdate) {
 		update := &DownloadUpdate{
+			MessageType: "download-update",
 			Title:           wc.Title,
 			BytesDownloaded: wc.Total,
 			TotalBytes:      wc.ExpectedTotal,
 		}
-		j, _ := json.Marshal(update)
-		wc.Hub.broadcast <- j
+		wc.Hub.broadcast <- update
 
 		wc.NextUpdate = time.Now().Add(time.Second)
 	}
@@ -58,43 +65,43 @@ func (wc *DownloadTracker) Write(p []byte) (int, error) {
 func chanConsumer(hub *Hub) {
 	for {
 		r := <-requestQueue
-		log.Printf("Message Consumed: %v", r)
+		log.Printf("[Processor] Message Consumed: %v", r)
 
 		err := downloadMedia(r, hub)
 		if err != nil {
-			log.Printf("Failed to download %v: %v", r.Metadata.ConcatTitles(), err)
+			log.Printf("[Processor] Failed to download %v: %v", r.Metadata.ConcatTitles(), err)
 			continue
 		}
 
-		log.Printf("Downloaded succesfully: %v", r.Metadata.ConcatTitles())
+		log.Printf("[Processor] Downloaded succesfully: %v", r.Metadata.ConcatTitles())
 	}
 }
 
 func downloadMedia(r DownloadRequest, hub *Hub) error {
 	path := fmt.Sprintf("/data/local%s", r.Part.File)
-	log.Printf("Downloading from %v to %v", r.Part.Key, path)
+	log.Printf("[Processor] Downloading %s from %v to %v", r.Metadata.Title, r.Part.Key, path)
 
-	log.Printf("Creating directory: %v", filepath.Dir(path))
+	log.Printf("[Processor] Creating directory: %v", filepath.Dir(path))
 	err := os.MkdirAll(filepath.Dir(path), 0755)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Creating temp file: %v", path+".tmp")
+	log.Printf("[Processor] Creating temp file: %v", path+".tmp")
 	file, err := os.Create(path + ".tmp")
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	log.Printf("Creating request")
+	log.Printf("[Processor] Creating request")
 	res, err := http.Get(fmt.Sprintf("%v%v?X-Plex-Token=%v", plexUrl, r.Part.Key, plexToken))
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
 
-	log.Printf("Starting write")
+	log.Printf("[Processor] Starting write")
 	counter := &DownloadTracker{
 		Title:         r.Metadata.ConcatTitles(),
 		Key:           r.Part.Key,
@@ -107,10 +114,14 @@ func downloadMedia(r DownloadRequest, hub *Hub) error {
 		return err
 	}
 
-	log.Printf("Closing file and renaming to final path: %v", path)
+	log.Printf("[Processor] Closing file and renaming to final path: %v", path)
 	file.Close()
 	err = os.Rename(path+".tmp", path)
 
+	hub.broadcast <- &DownloadUpdate{
+		MessageType: "download-complete",
+		Title:       r.Metadata.ConcatTitles(),
+	}
 	// TODO: Notify autoscan and/or plex
 
 	return err

@@ -12,7 +12,18 @@ import (
 )
 
 type Match struct {
-	Value      string
+	Key string
+	Title      string
+	Similarity float64
+}
+
+type SearchResult struct {
+	Key string
+	Type string
+	Title string
+	LowercaseTitle string
+	ParentTitle string
+	GrandparentTitle string
 	Similarity float64
 }
 
@@ -45,15 +56,12 @@ func populateTitles() error {
 		}
 
 		log.Printf("[Search][%s (%v)] Inserting %v titles", lib.Title, lib.Key, len(lc))
-		// TODO: Handle Anime/TV
 		for _, v := range lc {
-			// TODO: should map to media key
-			media[v.Title] = v
+			media[v.Key] = v
 
 			parts := strings.Split(strings.ToLower(v.Title), " ")
 			for _, p := range parts {
-				// TODO: should map to media key
-				titles.Insert(p, v.Title)
+				titles.Insert(p, v.Key)
 			}
 
 			// Alternative names (eg, BOFURI jap name)
@@ -69,17 +77,21 @@ func populateTitles() error {
 	return nil
 }
 
-func search(input string) []*plex.Metadata {
+func search(input string) []SearchResult {
 	log.Printf("[Search] Starting for %s", input)
 	values := titles.GetByPrefix(strings.ToLower(input))
 	log.Printf("[Search] Found %v raw results", len(values))
 
+	keys := make(map[string]bool)
 	results := make(Results, 0, len(values))
 	for _, v := range values {
 		value := v.(string)
-		s := ComputeSimilarity(len(value), len(input), LevenshteinDistance(value, input))
-		m := &Match{value, s}
-		results = append(results, m)
+		if _, exists := keys[value]; !exists {
+			keys[value] = true
+			s := ComputeSimilarity(len(media[value].Title), len(input), LevenshteinDistance(media[value].Title, input))
+			m := &Match{value, media[value].Title, s}
+			results = append(results, m)
+		}
 	}
 
 	// TODO: Prefer titles starting with search term
@@ -87,10 +99,20 @@ func search(input string) []*plex.Metadata {
 
 	sort.Sort(results)
 
-	videos := make([]*plex.Metadata, 0, len(results))
+	// TODO: Figure out why duplicates are being returned
+	// TODO: Limit number of returned results
+	videos := make([]SearchResult, 0, len(results))
 	for _, r := range results {
-		v := media[r.Value]
-		videos = append(videos, &v)
+		v := media[r.Key]
+		videos = append(videos, SearchResult{
+			Key:              v.RatingKey,
+			Type: 			  v.Type,
+			Title:            v.Title,
+			LowercaseTitle:   strings.ToLower(v.Title),
+			ParentTitle:      v.ParentTitle,
+			GrandparentTitle: v.GrandparentTitle,
+			Similarity:       r.Similarity,
+		})
 	}
 
 	return videos

@@ -8,6 +8,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type Message interface {
+	ToBytes() []byte
+}
+
+type Ping struct {
+}
+func (Ping) ToBytes() []byte {
+	return []byte("PING")
+}
+
 type Client struct {
 	hub *Hub
 
@@ -23,7 +33,7 @@ type Hub struct {
 	clients map[*Client]bool
 
 	// Inbound messages from the clients.
-	broadcast chan []byte
+	broadcast chan Message
 
 	// Register requests from the clients.
 	register chan *Client
@@ -55,7 +65,7 @@ var upgrader = websocket.Upgrader{
 
 func newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan Message),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
@@ -75,7 +85,7 @@ func (h *Hub) run() {
 		case message := <-h.broadcast:
 			for client := range h.clients {
 				select {
-				case client.send <- message:
+				case client.send <- message.ToBytes():
 				default:
 					close(client.send)
 					delete(h.clients, client)
@@ -117,8 +127,7 @@ func (c *Client) readPump() {
 		}
 		log.Printf("[WS] Message received: %v", message)
 
-		// TODO: Handle incoming messages
-		// Income Message type: Cancel download
+		// TODO: Handle incoming cancel message
 		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//c.hub.broadcast <- message
 	}
