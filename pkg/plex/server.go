@@ -110,18 +110,21 @@ func (s *Server) GetMediaMetadataChildren(key string) ([]Metadata, error) {
 	return l.MediaContainer.Metadata, nil
 }
 
-func (s *Server) GetMediaParts(key string) ([]Part, error) {
+func (s *Server) GetMetadataWithParts(key string) ([]Metadata, error) {
 	m, err := s.GetMediaMetadata(key)
 	if err != nil {
 		return nil, err
 	}
 
+	meta := make([]Metadata, 0)
 	var seasons []Metadata
 	switch m.Type {
 	case "movie":
-		return m.Media[0].Part, nil
+		meta = append(meta, m)
+		return meta, nil
 	case "episode":
-		return m.Media[0].Part, nil
+		meta = append(meta, m)
+		return meta, nil
 	case "show":
 		seasons, err = s.GetMediaMetadataChildren(key)
 		if err != nil {
@@ -136,7 +139,6 @@ func (s *Server) GetMediaParts(key string) ([]Part, error) {
 		return nil, err
 	}
 
-	p := make([]Part, 0)
 	for _, season := range seasons {
 		episodes, err := s.GetMediaMetadataChildren(season.RatingKey)
 		if err != nil {
@@ -144,10 +146,8 @@ func (s *Server) GetMediaParts(key string) ([]Part, error) {
 			return nil, err
 		}
 
-		for _, e := range episodes {
-			p = append(p, e.Media[0].Part...)
-		}
+		meta = append(meta, episodes...)
 	}
 
-	return p, err
+	return meta, err
 }

@@ -57,7 +57,7 @@ func postQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parts, err := s.GetMediaParts(k)
+	meta, err := s.GetMetadataWithParts(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -66,13 +66,13 @@ func postQueue(w http.ResponseWriter, r *http.Request) {
 	l := fmt.Sprintf("Queuing download of media (%s - %s)", k, m.ConcatTitles())
 	log.Printf(l)
 
-	for _, part := range parts {
-		go func(p plex.Part) {
+	for _, m := range meta {
+		go func(m plex.Metadata) {
 			requestQueue <- DownloadRequest{
 				Metadata: m,
-				Part:     p,
+				Part:     m.Media[0].Part[0],
 			}
-		}(part)
+		}(m)
 	}
 
 	j, _ := json.Marshal(struct {
@@ -94,7 +94,7 @@ func getSearch(w http.ResponseWriter, r *http.Request) {
 func getMediaParts(w http.ResponseWriter, r *http.Request) {
 	sk := mux.Vars(r)["key"]
 
-	p, err := s.GetMediaParts(sk)
+	p, err := s.GetMetadataWithParts(sk)
 	if err != nil {
 		log.Printf("%v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
