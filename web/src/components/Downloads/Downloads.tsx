@@ -18,14 +18,7 @@ type Download = {
 }
 
 export const Downloads = () => {
-    const [downloads, setDownloads] = useState<{ [title: string]: Download }>({
-        'Lord': {
-            Title: 'Lord',
-            BytesDownloaded: 10000,
-            TotalBytes: 100000,
-            Complete: false
-        }
-    })
+    const [downloads, setDownloads] = useState<{ [title: string]: Download }>({})
 
     const handleDownloadMessage = (message: Message) => {
         const msg = message as DownloadUpdateMessage;
@@ -91,12 +84,13 @@ export const Downloads = () => {
 
     return (
         <div className='w-full'>
-            <ul className='w-full'>{Object.getOwnPropertyNames(downloads).map((t) => <DownloadBar key={t} title={t} downloads={downloads} />)}</ul>
+            <ul className='w-full'>{Object.getOwnPropertyNames(downloads).map((t) => <DownloadBar key={t} title={t}
+                                                                                                  downloads={downloads}/>)}</ul>
         </div>
     )
 }
 
-const DownloadBar :React.FC<{title: string, downloads: { [title: string]: Download }}> = ({ title, downloads }) => {
+const DownloadBar: React.FC<{ title: string, downloads: { [title: string]: Download } }> = ({title, downloads}) => {
     const download = downloads[title];
     const perc = download.BytesDownloaded / download.TotalBytes * 100
     const progressStyle = {
@@ -107,8 +101,12 @@ const DownloadBar :React.FC<{title: string, downloads: { [title: string]: Downlo
         <li className='relative grid-cols-1 text-md my-6 overflow-hidden rounded-xl shadow-md px-6 py-3'>
             <div>
                 <div className='-z-10 absolute inset-0 w-full h-full bg-green-100'></div>
-                <div className={`-z-10 absolute inset-0 h-full bg-gradient-to-r from-green-400 to-green-500 ${!download.Complete ? 'animate-pulse' : ''}`} style={progressStyle}></div>
-                { !download.Complete && <div className={`-z-10 absolute inset-0 h-full bg-none border-solid border-r border-green-600 ${!download.Complete ? 'animate-pulse' : ''}`} style={progressStyle}></div>}
+                <div
+                    className={`-z-10 absolute inset-0 h-full bg-gradient-to-r from-green-400 to-green-500 ${!download.Complete ? 'animate-pulse' : ''}`}
+                    style={progressStyle}></div>
+                {!download.Complete && <div
+                  className={`-z-10 absolute inset-0 h-full bg-none border-solid border-r border-green-600 ${!download.Complete ? 'animate-pulse' : ''}`}
+                  style={progressStyle}></div>}
             </div>
             <div className=''>{title} ({Math.round((perc + Number.EPSILON) * 10) / 10}%)</div>
         </li>)
