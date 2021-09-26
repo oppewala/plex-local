@@ -1,6 +1,7 @@
-import React, {ChangeEventHandler, useEffect, useState} from "react";
+import React, {ChangeEventHandler, useMemo, useState} from "react";
 import {Search as SearchApi, Download as DownloadApi} from '@services/Api/Api.service';
 import {DownloadResponse, SearchResponse} from "@services/Api/types";
+import { throttle } from "lodash";
 
 export const Search = () => {
     const [query, setQuery] = useState('');
@@ -40,12 +41,13 @@ export const Search = () => {
         setResults(ordered);
     }
 
+    const search = useMemo(() => throttle(SearchApi, 400), []);
+
     const changeHandler: ChangeEventHandler<HTMLInputElement> = async (e) => {
-        // TODO: Use debouncing to reduce api calls
         const q = e.target.value;
         setQuery(q)
-        SearchApi(q)
-            .then(r => setOrderedResults(q, r));
+        search(q)!
+            .then(r => setOrderedResults(q, r))
     }
 
     return (

@@ -99,7 +99,6 @@ func search(input string) []SearchResult {
 
 	sort.Sort(results)
 
-	// TODO: Figure out why duplicates are being returned
 	// TODO: Limit number of returned results
 	videos := make([]SearchResult, 0, len(results))
 	for _, r := range results {

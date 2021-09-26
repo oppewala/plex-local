@@ -67,6 +67,13 @@ func postQueue(w http.ResponseWriter, r *http.Request) {
 	log.Printf(l)
 
 	for _, m := range meta {
+		hub.broadcast <- &DownloadUpdate{
+			MessageType:     "download-start",
+			Title:           m.ConcatTitles(),
+			BytesDownloaded: 0,
+			TotalBytes:      0,
+		}
+
 		go func(m plex.Metadata) {
 			requestQueue <- DownloadRequest{
 				Metadata: m,
