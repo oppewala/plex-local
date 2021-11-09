@@ -21,7 +21,7 @@ type DownloadRequest struct {
 }
 
 type DownloadUpdate struct {
-	MessageType string
+	MessageType     string
 	Title           string
 	BytesDownloaded uint64
 	TotalBytes      uint64
@@ -49,7 +49,7 @@ func (wc *DownloadTracker) Write(p []byte) (int, error) {
 
 	if time.Now().After(wc.NextUpdate) {
 		update := &DownloadUpdate{
-			MessageType: "download-update",
+			MessageType:     "download-update",
 			Title:           wc.Title,
 			BytesDownloaded: wc.Total,
 			TotalBytes:      wc.ExpectedTotal,
@@ -78,7 +78,7 @@ func chanConsumer(hub *Hub) {
 }
 
 func downloadMedia(r DownloadRequest, hub *Hub) error {
-	path := fmt.Sprintf("/data/local%s", r.Part.File)
+	path := fmt.Sprintf("%s%s", mediaPath, r.Part.File)
 	log.Printf("[Processor] Downloading %s from %v to %v", r.Metadata.Title, r.Part.Key, path)
 
 	log.Printf("[Processor] Creating directory: %v", filepath.Dir(path))

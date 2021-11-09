@@ -1,5 +1,5 @@
-import { Config } from "@utils/Config/config";
-import {SearchResponse, DownloadResponse } from "@services/Api/types";
+import {Config} from "@utils/Config/config";
+import {DownloadResponse, SearchResponse} from "@services/Api/types";
 
 const Search = async (query: string, options?: RequestInit): Promise<Array<SearchResponse>> => {
     const url = new URL('/api/search', Config.ApiRoot)
@@ -10,23 +10,21 @@ const Search = async (query: string, options?: RequestInit): Promise<Array<Searc
     url.searchParams.append("q", query);
 
     const res = await fetch(url.toString(), opt);
-    const j: Array<SearchResponse> = await res.json();
-
-    return j
+    return await res.json()
 }
 
-const Download = async (key: string, options?: RequestInit): Promise<DownloadResponse> => {
+const Download = async (key: string, downloadFuture: boolean, options?: RequestInit): Promise<DownloadResponse> => {
     const path = '/api/media/' + key + '/download';
     const url = new URL(path, Config.ApiRoot)
     const opt: RequestInit = {
         ...options,
-        method: 'POST',
+        method: 'POST'
     };
 
-    const res = await fetch(url.toString(), opt);
-    const j: DownloadResponse = await res.json();
+    const qs = downloadFuture ? '?a=true' : '?a=false'
 
-    return j
+    const res = await fetch(`${url.toString()}${qs}`, opt);
+    return await res.json()
 }
 
 export { Search, Download };

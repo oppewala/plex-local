@@ -1,8 +1,5 @@
-import React, {useMemo, useState} from "react";
-
-interface Message {
-    MessageType: string
-}
+import React, {useContext, useMemo, useState} from "react";
+import SocketContext, {Message} from "@components/SocketContext/SocketContext";
 
 interface DownloadUpdateMessage extends Message {
     Title: string
@@ -20,7 +17,11 @@ type Download = {
 export const Downloads = () => {
     const [downloads, setDownloads] = useState<{ [title: string]: Download }>({})
 
+    const socketContext = useContext(SocketContext);
+
     const handleDownloadMessage = (message: Message) => {
+        console.log(message)
+
         const msg = message as DownloadUpdateMessage;
         setDownloads((prevState: { [title: string]: Download }) => {
             let newState = {
@@ -32,6 +33,7 @@ export const Downloads = () => {
                 TotalBytes: msg.TotalBytes,
                 Complete: false
             };
+            console.log('setting state', msg, msg.Title, prevState, newState)
             return newState;
         });
     }
@@ -69,39 +71,32 @@ export const Downloads = () => {
     }
 
     useMemo(() => {
-        let ws = new WebSocket('ws://localhost:8080/api/ws')
-
-        ws.addEventListener('open', ev => {
-            console.log('connection opened', ev)
+        socketContext.AddListener({
+            Type: 'open',
+            Emit: (data : Event) => {
+                console.log('connection opened', data)
+            }
         })
-        ws.addEventListener('message', ev => {
-            if (ev.data === 'PING') {
-                return;
+        socketContext.AddListener({
+            Type: 'close',
+            Emit: (data : Event) => {
+                // TODO: Notify and/or reconnect
+                console.log('connection closed', data)
             }
-
-            const message: Message = JSON.parse(ev.data)
-            if (message.MessageType === "download-update") {
-                handleDownloadMessage(message);
-                return;
-            }
-            if (message.MessageType === 'download-complete') {
-                handleCompleteMessage(message);
-                return;
-            }
-            if (message.MessageType === 'download-start') {
-                handleStartMessage(message);
-                return;
-            }
-
-            console.log('Unhandled type', message.MessageType, message)
         })
-        ws.addEventListener('close', ev => {
-            // TODO: Notify and/or reconnect
-            console.log('closed!', ev)
+        socketContext.AddListener({
+            MessageType: 'download-update',
+            Emit: handleDownloadMessage
         })
-
-        return ws;
-    }, []);
+        socketContext.AddListener({
+            MessageType: 'download-start',
+            Emit: handleStartMessage
+        })
+        socketContext.AddListener({
+            MessageType: 'download-complete',
+            Emit: handleCompleteMessage
+        })
+    }, [socketContext])
 
     return (
         <div className='w-full'>
@@ -115,10 +110,10 @@ const DownloadBar: React.FC<{ title: string, downloads: { [title: string]: Downl
     const download = downloads[title];
 
     const percentNumber = (dl: Download): number => {
-        if (download.Complete) return 100;
-        if (download.BytesDownloaded === 0) return 0;
+        if (dl.Complete) return 100;
+        if (dl.BytesDownloaded === 0) return 0;
 
-        const p = download.BytesDownloaded / download.TotalBytes * 100;
+        const p = dl.BytesDownloaded / dl.TotalBytes * 100;
         return Math.round((p + Number.EPSILON) * 10) / 10
     }
 
