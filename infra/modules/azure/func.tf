@@ -1,6 +1,7 @@
 variable "group_name" {
-  default = ""
-  type    = string
+  default   = ""
+  type      = string
+  sensitive = true
 }
 
 terraform {
