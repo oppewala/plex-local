@@ -119,13 +119,13 @@ resource "azurerm_storage_container" "sa" {
   storage_account_name = azurerm_storage_account.sa.name
 }
 
-resource "azurerm_key_vault_secret" "sa" {
+resource "azurerm_key_vault_secret" "kvsecret_sa_connectionstring" {
   name         = "sa-connection-string"
   value        = azurerm_storage_account.sa.primary_connection_string
   key_vault_id = azurerm_key_vault.core.id
 }
 
-resource "azurerm_key_vault_secret" "sa" {
+resource "azurerm_key_vault_secret" "kvsecret_sa_accesskey" {
   name         = "sa-access-key"
   value        = azurerm_storage_account.sa.primary_access_key
   key_vault_id = azurerm_key_vault.core.id
