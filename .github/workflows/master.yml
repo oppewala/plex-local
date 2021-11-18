@@ -98,6 +98,7 @@ jobs:
     name: "Azure Function code"
     runs-on: ubuntu-latest
     environment: production
+    needs: terraform
 
     env:
       AZURE_FUNCTIONAPP_NAME: fapp-plex-local-dl
