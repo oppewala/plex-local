@@ -29,7 +29,7 @@ namespace PublicApi.Func
             
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
-            await response.WriteStringAsync("Welcome to Azure Functions!");
+            await response.WriteStringAsync("Processed request.");
             return response;
         }
 
@@ -37,7 +37,7 @@ namespace PublicApi.Func
         {
             var bsc = new BlobServiceClient(Environment.GetEnvironmentVariable("STORAGE_ACCOUNT"));
             var container = bsc.GetBlobContainerClient("webhook-requests");
-            var blob = container.GetBlobClient($"{DateTime.Now:u}.json");
+            var blob = container.GetBlobClient($"{DateTime.Now:yyyy-MM-dd hh:mm:ss.fff}.json");
 
             await using var stream = new MemoryStream();
             var writer = new StreamWriter(stream);
