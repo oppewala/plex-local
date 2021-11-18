@@ -45,6 +45,15 @@ resource "azurerm_key_vault" "core" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
 }
 
+resource "azurerm_key_vault_access_policy" "core" {
+  key_vault_id = azurerm_key_vault.core.id
+  object_id    = data.azurerm_client_config.current.object_id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+
+  key_permissions    = ["Get", "List", "Create"]
+  secret_permissions = ["Get", "List", "Set"]
+}
+
 # Function App
 resource "azurerm_storage_account" "fapp" {
   name                     = "safapp${local.safe_group_name}"
