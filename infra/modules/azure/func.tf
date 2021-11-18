@@ -86,9 +86,9 @@ resource "azurerm_function_app" "fapp" {
   version                    = "~4"
   app_settings               = {
     "WEBSITE_RUN_FROM_PACKAGE"       = ""
-    "FUNCTIONS_WORKER_RUNTIME"       = "dotnet"
+    "FUNCTIONS_WORKER_RUNTIME"       = "dotnet-isolated"
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.core.instrumentation_key
-    "STORAGE_ACCOUNT" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.core.vault_uri}secrets/${azurerm_key_vault_secret.kvsecret_sa_connectionstring.name}/${azurerm_key_vault_secret.kvsecret_sa_connectionstring.version})"
+    "STORAGE_ACCOUNT"                = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.core.vault_uri}secrets/${azurerm_key_vault_secret.kvsecret_sa_connectionstring.name}/${azurerm_key_vault_secret.kvsecret_sa_connectionstring.version})"
   }
   identity {
     type = "SystemAssigned"
