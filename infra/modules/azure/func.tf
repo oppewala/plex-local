@@ -89,6 +89,7 @@ resource "azurerm_function_app" "fapp" {
     "FUNCTIONS_WORKER_RUNTIME"       = "node"
     "WEBSITE_NODE_DEFAULT_VERSION"   = "10.14.1"
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.core.instrumentation_key
+    "STORAGE_ACCOUNT" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.core.vault_uri}secrets/${azurerm_key_vault_secret.kvsecret_sa_connectionstring.name}/${azurerm_key_vault_secret.kvsecret_sa_connectionstring.version})"
   }
   identity {
     type = "SystemAssigned"
