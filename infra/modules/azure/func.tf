@@ -88,8 +88,8 @@ resource "azurerm_function_app" "fapp" {
 
 resource "azurerm_key_vault_access_policy" "fapp" {
   key_vault_id = azurerm_key_vault.core.id
-  object_id    = azurerm_function_app.fapp.identity.principal_id
-  tenant_id    = azurerm_function_app.fapp.identity.tenant_id
+  object_id    = azurerm_function_app.fapp.identity[0].principal_id
+  tenant_id    = azurerm_function_app.fapp.identity[0].tenant_id
 
   key_permissions    = ["Get"]
   secret_permissions = ["Get"]
