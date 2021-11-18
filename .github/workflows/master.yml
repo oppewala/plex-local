@@ -32,7 +32,7 @@ jobs:
         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
     - name: 'Terraform Format'
-      id: format
+      id: fmt
       run: terraform fmt -check
       working-directory: ./infra
 
