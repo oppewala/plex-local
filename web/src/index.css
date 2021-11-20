@@ -15,3 +15,54 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.tt {
+  @apply relative;
+}
+
+.tt:before {
+  content: attr(data-text);
+  @apply absolute text-center hidden;
+
+  /* basic styles */
+  width:200px;
+  padding:10px;
+  border-radius:10px;
+  background:#000;
+  color: #fff;
+}
+
+.tt:after {
+  content: "";
+  @apply hidden absolute;
+  @apply border-8 border-solid border-black;
+}
+
+.tt.tt-right:before {
+  @apply top-1/2 transform -translate-y-1/2;
+  @apply left-full translate-x-2;
+}
+
+.tt.tt-right:after {
+  @apply top-1/2 transform -translate-y-1/2;
+  @apply left-full -translate-x-2;
+
+  border-color: transparent black transparent transparent;
+}
+
+.tt.tt-top:before {
+  /*@apply top-1/4 transform -translate-y-20 -translate-x-1/2;*/
+  @apply -top-2 transform -translate-y-full;
+  @apply left-1/2 -translate-x-1/2;
+}
+
+.tt.tt-top:after {
+  @apply top-2 transform -translate-y-full;
+  @apply left-1/2 -translate-x-1/2;
+
+  border-color: black transparent transparent transparent;
+}
+
+.tt:hover:before, .tt:hover:after {
+  @apply block;
+}

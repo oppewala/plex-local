@@ -1,0 +1,35 @@
+{
+  "series": {
+    "id": 1,
+    "title": "Test Title",
+    "path": "/tv/Show Name, The",
+    "tvdbId": 1234,
+    "tvMazeId": 0,
+    "imdbId": "tt7203552",
+    "type": "standard"
+  },
+  "episodes": [
+    {
+      "id": 123,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Test title",
+      "airDate": "2021-11-19",
+      "airDateUtc": "2021-11-19T05:00:00Z"
+    }
+  ],
+  "episodeFile": {
+    "id": 123,
+    "relativePath": "Season 1/Show Name S01E01.mkv",
+    "path": "/full/path/tv/Show Name, The/Season 1/Show Name S01E01.mkv",
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 1,
+    "releaseGroup": "TheBestGroup",
+    "sceneName": "The.Show.Name.S01E01.1080p.WEB.H264-TheBestGroup[rartv]",
+    "size": 1234567
+  },
+  "isUpgrade": false,
+  "downloadClient": "QBittorrent  - VPN",
+  "downloadId": "945518F2742E6BBA7B3C29438E8945B0F3A787E5",
+  "eventType": "Download"
+}

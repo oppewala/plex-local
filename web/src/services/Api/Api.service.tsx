@@ -1,5 +1,5 @@
 import {Config} from "@utils/Config/config";
-import {DownloadResponse, SearchResponse} from "@services/Api/types";
+import {DownloadPersistResponse, DownloadResponse, SearchResponse} from "@services/Api/types";
 
 const Search = async (query: string, options?: RequestInit): Promise<Array<SearchResponse>> => {
     const url = new URL('/api/search', Config.ApiRoot)
@@ -13,7 +13,7 @@ const Search = async (query: string, options?: RequestInit): Promise<Array<Searc
     return await res.json()
 }
 
-const Download = async (key: string, downloadFuture: boolean, options?: RequestInit): Promise<DownloadResponse> => {
+const Download = async (key: string, options?: RequestInit): Promise<DownloadResponse> => {
     const path = '/api/media/' + key + '/download';
     const url = new URL(path, Config.ApiRoot)
     const opt: RequestInit = {
@@ -21,10 +21,20 @@ const Download = async (key: string, downloadFuture: boolean, options?: RequestI
         method: 'POST'
     };
 
-    const qs = downloadFuture ? '?a=true' : '?a=false'
-
-    const res = await fetch(`${url.toString()}${qs}`, opt);
+    const res = await fetch(`${url.toString()}`, opt);
     return await res.json()
 }
 
-export { Search, Download };
+const DownloadPersist = async (key: string, options?: RequestInit): Promise<DownloadPersistResponse> => {
+    const path = '/api/media/' + key + '/download/persist';
+    const url = new URL(path, Config.ApiRoot)
+    const opt: RequestInit = {
+        ...options,
+        method: 'POST'
+    };
+
+    const res = await fetch(`${url.toString()}`, opt);
+    return await res.json()
+}
+
+export { Search, Download, DownloadPersist };

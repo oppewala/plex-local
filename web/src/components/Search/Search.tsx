@@ -1,6 +1,6 @@
 import React, {ChangeEventHandler, useMemo, useState} from "react";
-import {Search as SearchApi, Download as DownloadApi} from '@services/Api/Api.service';
-import {DownloadResponse, SearchResponse} from "@services/Api/types";
+import {Search as SearchApi, Download as DownloadApi, DownloadPersist as DownloadPersistApi} from '@services/Api/Api.service';
+import {DownloadPersistResponse, DownloadResponse, SearchResponse} from "@services/Api/types";
 import {throttle} from "lodash";
 
 export const Search = () => {
@@ -75,9 +75,13 @@ const ResetButton: React.FC<{ display: boolean, resetFunction: ResetFunction }> 
 }
 
 const SearchResult: React.FC<{ result: SearchResponse }> = ({result}) => {
-    const download = (key: string, downloadFuture: boolean) => {
-        DownloadApi(key, downloadFuture)
+    const download = (key: string) => {
+        DownloadApi(key)
             .then((r: DownloadResponse) => console.log('download', r))
+    }
+    const downloadPersist = (key: string) => {
+        DownloadPersistApi(key)
+            .then((r: DownloadPersistResponse) => console.log('download', r))
     }
     const typeIcon = (type: string) => {
         if (type === 'movie') {
@@ -90,13 +94,32 @@ const SearchResult: React.FC<{ result: SearchResponse }> = ({result}) => {
 
         return type;
     }
+    let tooltips: {
+        download: {
+            [key: string]: string
+        },
+        downloadPersist: {
+            [key: string]: string
+        }
+    }
+    tooltips = {
+        download: {
+            show: 'Download all episodes currently available on plex',
+            movie: 'Download Movie'
+        },
+        downloadPersist: {
+            show: 'Download future episodes as they release'
+        }
+    }
 
     return (<li className='my-3 px-6 py-3 bg-blue-100 rounded-xl shadow-md space-x-4 flex flex-row'>
-        <span className='flex-1'>{typeIcon(result.Type)} {result.Title}</span>
-        <span>
-            <span onClick={() => download(result.Key, false)} className='flex-none cursor-pointer'>🔽</span>
-            <span onClick={() => download(result.Key, true)} className='flex-none cursor-pointer'>⏬</span>
-        </span>
+        <div className='flex-1'>{typeIcon(result.Type)} {result.Title}</div>
+        <div className='flex flex-row'>
+            <span onClick={() => download(result.Key)} className='tt tt-top flex-none cursor-pointer' data-text={tooltips.download[result.Type]}>🔽</span>
+            {result.Type === 'show' ?
+                <span onClick={() => downloadPersist(result.Key)} className='tt tt-top flex-none cursor-pointer' data-text={tooltips.downloadPersist[result.Type]}>⏬</span>
+                : null}
+        </div>
     </li>)
 }
 

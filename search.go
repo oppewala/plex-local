@@ -12,19 +12,19 @@ import (
 )
 
 type Match struct {
-	Key string
+	Key        string
 	Title      string
 	Similarity float64
 }
 
 type SearchResult struct {
-	Key string
-	Type string
-	Title string
-	LowercaseTitle string
-	ParentTitle string
+	Key              string
+	Type             string
+	Title            string
+	LowercaseTitle   string
+	ParentTitle      string
 	GrandparentTitle string
-	Similarity float64
+	Similarity       float64
 }
 
 type Results []*Match
@@ -33,14 +33,14 @@ func (r Results) Len() int           { return len(r) }
 func (r Results) Less(i, j int) bool { return r[i].Similarity < r[j].Similarity }
 func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
-var similarity = 0.3
 var titles = prefixmap.New()
 var media = make(map[string]plex.Metadata)
 
+// TODO - Refresh on a timer or on page load
 func populateTitles() error {
 	log.Printf("[Search] Starting library indexing")
 
-	libs, err := s.GetLibraries()
+	libs, err := plexServer.GetLibraries()
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve libraries\n %v", err)
 		return err
@@ -50,7 +50,7 @@ func populateTitles() error {
 
 	for _, lib := range libs {
 		log.Printf("[Search][%s (%v)] Retrieving library contents ", lib.Title, lib.Key)
-		lc, err := s.GetLibraryContent(lib.Key)
+		lc, err := plexServer.GetLibraryContent(lib.Key)
 		if err != nil {
 			err = fmt.Errorf("failed to retrieve library content ([%v] %s)\n%v", lib.Key, lib.Title, err)
 		}
@@ -105,7 +105,7 @@ func search(input string) []SearchResult {
 		v := media[r.Key]
 		videos = append(videos, SearchResult{
 			Key:              v.RatingKey,
-			Type: 			  v.Type,
+			Type:             v.Type,
 			Title:            v.Title,
 			LowercaseTitle:   strings.ToLower(v.Title),
 			ParentTitle:      v.ParentTitle,

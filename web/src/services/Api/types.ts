@@ -9,5 +9,9 @@ export type SearchResponse = {
 }
 
 export type DownloadResponse = {
-    Log: string;
+    Message: string;
+}
+
+export type DownloadPersistResponse = {
+    Message: string
 }

@@ -51,7 +51,9 @@ namespace PublicApi.Func
         private static async Task QueueRequest(string request)
         {
             var queueClient = new QueueClient(Environment.GetEnvironmentVariable("STORAGE_ACCOUNT"), "webhook-requests");
-            await queueClient.SendMessageAsync(request);
+            
+            // Wait for autoscan wait time and plex scan to complete before making message available to consumers
+            await queueClient.SendMessageAsync(request, visibilityTimeout: TimeSpan.FromMinutes(15));
         }
     }
 }
