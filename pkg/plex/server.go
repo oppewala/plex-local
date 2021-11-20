@@ -3,9 +3,12 @@ package plex
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
 )
 
 type Server struct {
@@ -23,6 +26,8 @@ func NewServer(url string, token string) *Server {
 }
 
 func (s *Server) executeGet(path string) ([]byte, error) {
+	log.Printf("[Plex] Executing: %v", path)
+
 	u := fmt.Sprintf("%v%v?X-Plex-Token=%v", s.URL, path, s.Token)
 	req, _ := http.NewRequest("GET", u, nil)
 	req.Header.Add("Accept", "application/json")
@@ -34,7 +39,9 @@ func (s *Server) executeGet(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 	return ioutil.ReadAll(res.Body)
 }
 
@@ -47,7 +54,7 @@ func (s *Server) GetLibraries() ([]Directory, error) {
 	l := &ResponseRoot{}
 	err = json.Unmarshal(body, l)
 	if err != nil {
-		log.Printf("%v", string(body))
+		log.Printf("[Plex] %v", string(body))
 		err = fmt.Errorf("failed to convert body from json \n%w", err)
 		return nil, err
 	}
@@ -64,7 +71,7 @@ func (s *Server) GetLibraryContent(key string) ([]Metadata, error) {
 	l := &ResponseRoot{}
 	err = json.Unmarshal(body, l)
 	if err != nil {
-		log.Printf("%v", string(body))
+		log.Printf("[Plex] %v", string(body))
 		err = fmt.Errorf("failed to convert body from json \n%w", err)
 		return nil, err
 	}
@@ -73,6 +80,8 @@ func (s *Server) GetLibraryContent(key string) ([]Metadata, error) {
 }
 
 func (s *Server) GetMediaMetadata(key string) (Metadata, error) {
+	// TODO: Cache this method
+
 	rootRequest := fmt.Sprintf("/library/metadata/%s", key)
 	body, err := s.executeGet(rootRequest)
 	if err != nil {
@@ -83,7 +92,7 @@ func (s *Server) GetMediaMetadata(key string) (Metadata, error) {
 	l := &ResponseRoot{}
 	err = json.Unmarshal(body, l)
 	if err != nil {
-		log.Printf("%v", string(body))
+		log.Printf("[Plex] %v", string(body))
 		err = fmt.Errorf("failed to convert body from json \n%w", err)
 		return Metadata{}, err
 	}
@@ -102,7 +111,7 @@ func (s *Server) GetMediaMetadataChildren(key string) ([]Metadata, error) {
 	l := &ResponseRoot{}
 	err = json.Unmarshal(body, l)
 	if err != nil {
-		log.Printf("%v", string(body))
+		log.Printf("[Plex] %v", string(body))
 		err = fmt.Errorf("failed to convert body from json \n%w", err)
 		return nil, err
 	}
@@ -150,4 +159,32 @@ func (s *Server) GetMetadataWithParts(key string) ([]Metadata, error) {
 	}
 
 	return meta, err
+}
+
+func (s *Server) GetTvdbId(m Metadata) (uint, error) {
+	r := regexp.MustCompile("^com\\.plexapp\\.agents\\.thetvdb://(?P<id>[0-9]+)")
+	if r.MatchString(m.Guid) {
+		match := r.FindStringSubmatch(m.Guid)
+
+		id, err := strconv.ParseUint(match[1], 10, 64)
+		return uint(id), err
+	}
+
+	// Guid with 'plex://movie/1a2b3c4d5e6f' needs to check GUID
+	if m.GUID == nil {
+		return 0, fmt.Errorf("'GUID' is nil while 'Guid' is not in an expected format (%v)", m.Guid)
+	}
+
+	// GUID where starts with tvdb - tvdb://12345
+	r = regexp.MustCompile("^tvdb://(?P<id>[0-9]+)")
+	for _, g := range m.GUID {
+		if r.MatchString(g.ID) {
+			match := r.FindStringSubmatch(g.ID)
+
+			id, err := strconv.ParseUint(match[1], 10, 64)
+			return uint(id), err
+		}
+	}
+
+	return 0, fmt.Errorf("could not extract tvdbid from guid fields - guid: %v - GUID: %v", m.Guid, m.GUID)
 }

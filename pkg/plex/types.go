@@ -84,11 +84,12 @@ type GUID struct {
 	ID string `json:"id"`
 }
 type Metadata struct {
-	RatingKey            string `json:"ratingKey"`
-	Key                  string `json:"key"`
-	ParentRatingKey      string `json:"parentRatingKey"`
-	GrandparentRatingKey string `json:"grandparentRatingKey"`
-	//GUID                  string     `json:"guid"` // Some media returns 2 guid properties...
+	RatingKey             string     `json:"ratingKey"`
+	Key                   string     `json:"key"`
+	ParentRatingKey       string     `json:"parentRatingKey"`
+	GrandparentRatingKey  string     `json:"grandparentRatingKey"`
+	Guid                  string     `json:"guid"` // Some media returns 2 guid properties...
+	GUID                  []GUID     `json:"Guid"`
 	Studio                string     `json:"studio"`
 	Type                  string     `json:"type"`
 	Title                 string     `json:"title"`

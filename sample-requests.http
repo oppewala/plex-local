@@ -14,6 +14,22 @@ GET http://localhost:8080/api/media/8086
 
 POST http://localhost:8080/api/media/8086/download
 
+### POST Persist request
+
+POST http://localhost:8080/api/media/8086/download/persist
+
+### GET List persisted downloads
+
+GET http://localhost:8080/api/media/download/persist
+
+### DELETE Remove persisted download
+
+DELETE http://localhost:8080/api/media/8086/download/persist
+
+### DELETE Force remove persisted download (Cleanup data)
+
+DELETE http://localhost:8080/api/media/download/persist/movie/񡍱
+
 ### GET Search results
 
 GET http://localhost:8080/api/search?q=Up

@@ -2,30 +2,35 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/oppewala/plex-local-dl/pkg/plex"
+	"github.com/oppewala/plex-local-dl/pkg/storage"
 )
 
+type apiPostResponse struct {
+	Message string
+}
+
 func getLibraries(w http.ResponseWriter, _ *http.Request) {
-	l, err := s.GetLibraries()
+	l, err := plexServer.GetLibraries()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	j, _ := json.Marshal(l)
-
 	_, _ = w.Write(j)
 }
 
 func getLibraryContent(w http.ResponseWriter, r *http.Request) {
 	k := mux.Vars(r)["key"]
 
-	c, err := s.GetLibraryContent(k)
+	c, err := plexServer.GetLibraryContent(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -38,7 +43,7 @@ func getLibraryContent(w http.ResponseWriter, r *http.Request) {
 func getMediaMetadata(w http.ResponseWriter, r *http.Request) {
 	k := mux.Vars(r)["key"]
 
-	v, err := s.GetMediaMetadata(k)
+	v, err := plexServer.GetMediaMetadata(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,20 +56,20 @@ func getMediaMetadata(w http.ResponseWriter, r *http.Request) {
 func postQueue(w http.ResponseWriter, r *http.Request) {
 	k := mux.Vars(r)["key"]
 
-	m, err := s.GetMediaMetadata(k)
+	m, err := plexServer.GetMediaMetadata(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	meta, err := s.GetMetadataWithParts(k)
+	meta, err := plexServer.GetMetadataWithParts(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	l := fmt.Sprintf("Queuing download of media (%s - %s)", k, m.ConcatTitles())
-	log.Printf(l)
+	log.Printf("[API] %v", l)
 
 	for _, m := range meta {
 		hub.broadcast <- &DownloadUpdate{
@@ -82,11 +87,7 @@ func postQueue(w http.ResponseWriter, r *http.Request) {
 		}(m)
 	}
 
-	j, _ := json.Marshal(struct {
-		log string
-	}{
-		log: l,
-	})
+	j, _ := json.Marshal(apiPostResponse{Message: l})
 	_, _ = w.Write(j)
 }
 
@@ -101,14 +102,97 @@ func getSearch(w http.ResponseWriter, r *http.Request) {
 func getMediaParts(w http.ResponseWriter, r *http.Request) {
 	sk := mux.Vars(r)["key"]
 
-	p, err := s.GetMetadataWithParts(sk)
+	p, err := plexServer.GetMetadataWithParts(sk)
 	if err != nil {
-		log.Printf("%v", err)
+		log.Printf("[API] Error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	j, _ := json.Marshal(p)
 	_, _ = w.Write(j)
+}
 
+func postPersist(w http.ResponseWriter, r *http.Request) {
+	k := mux.Vars(r)["key"]
+
+	m, err := plexServer.GetMediaMetadata(k)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tvdbid, err := plexServer.GetTvdbId(m)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = store.Add(storage.Entry{
+		Category: m.Type,
+		Title:    m.Title,
+		TVDB:     tvdbid,
+	})
+	var dupErr *storage.DuplicateEntryError
+	if err != nil && errors.As(err, &dupErr) {
+		log.Printf("[API] Entry already being tracked: %v", dupErr)
+		j, _ := json.Marshal(apiPostResponse{Message: "Entry already being tracked"})
+		_, _ = w.Write(j)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[API] Future releases of %v (%v) will automatically be downloaded", m.Title, m.Type)
+	j, _ := json.Marshal(apiPostResponse{Message: fmt.Sprintf("Future releases of %v (%v) will automatically be downloaded", m.Title, m.Type)})
+	_, _ = w.Write(j)
+}
+
+func deletePersist(w http.ResponseWriter, r *http.Request) {
+	k := mux.Vars(r)["key"]
+
+	m, err := plexServer.GetMediaMetadata(k)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tvdbid, err := plexServer.GetTvdbId(m)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = store.Remove(m.Type, tvdbid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func getPersisted(w http.ResponseWriter, _ *http.Request) {
+	e, err := store.List()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	j, _ := json.Marshal(e)
+	_, _ = w.Write(j)
+}
+
+func deletePersistForce(w http.ResponseWriter, r *http.Request) {
+	p := mux.Vars(r)["partition"]
+	row := mux.Vars(r)["row"]
+
+	err := store.ForceRemove(p, row)
+	if err != nil {
+		log.Printf("[API] Failed to force delete entry at '%v' '%v'", p, row)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
