@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"strconv"
 )
 
 type Server struct {
@@ -161,30 +160,28 @@ func (s *Server) GetMetadataWithParts(key string) ([]Metadata, error) {
 	return meta, err
 }
 
-func (s *Server) GetTvdbId(m Metadata) (uint, error) {
+func (s *Server) GetDbId(m Metadata) (string, error) {
 	r := regexp.MustCompile("^com\\.plexapp\\.agents\\.thetvdb://(?P<id>[0-9]+)")
 	if r.MatchString(m.Guid) {
 		match := r.FindStringSubmatch(m.Guid)
 
-		id, err := strconv.ParseUint(match[1], 10, 64)
-		return uint(id), err
+		return match[1], nil
 	}
 
-	// Guid with 'plex://movie/1a2b3c4d5e6f' needs to check GUID
+	// Guid with 'plex://movie/1a2b3c4d5e6f' is movie - look at GUID property for imdb id
 	if m.GUID == nil {
-		return 0, fmt.Errorf("'GUID' is nil while 'Guid' is not in an expected format (%v)", m.Guid)
+		return "", fmt.Errorf("'GUID' is nil while 'Guid' is not in an expected format (%v)", m.Guid)
 	}
 
-	// GUID where starts with tvdb - tvdb://12345
-	r = regexp.MustCompile("^tvdb://(?P<id>[0-9]+)")
+	// GUID where starts with imdb - imdb://tt12345
+	r = regexp.MustCompile("^imdb://(?P<id>[a-zA-Z0-9]+)")
 	for _, g := range m.GUID {
 		if r.MatchString(g.ID) {
 			match := r.FindStringSubmatch(g.ID)
 
-			id, err := strconv.ParseUint(match[1], 10, 64)
-			return uint(id), err
+			return match[1], nil
 		}
 	}
 
-	return 0, fmt.Errorf("could not extract tvdbid from guid fields - guid: %v - GUID: %v", m.Guid, m.GUID)
+	return "", fmt.Errorf("could not extract tvdbid from guid fields - guid: %v - GUID: %v", m.Guid, m.GUID)
 }

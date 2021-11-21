@@ -28,7 +28,7 @@ DELETE http://localhost:8080/api/media/8086/download/persist
 
 ### DELETE Force remove persisted download (Cleanup data)
 
-DELETE http://localhost:8080/api/media/download/persist/movie/񡍱
+DELETE http://localhost:8080/api/media/download/persist/movie/title
 
 ### GET Search results
 

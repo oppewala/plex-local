@@ -36,7 +36,6 @@ func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 var titles = prefixmap.New()
 var media = make(map[string]plex.Metadata)
 
-// TODO - Refresh on a timer or on page load
 func populateTitles() error {
 	log.Printf("[Search] Starting library indexing")
 
