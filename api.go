@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/oppewala/plex-local-dl/pkg/plex"
@@ -56,39 +57,36 @@ func getMediaMetadata(w http.ResponseWriter, r *http.Request) {
 func postQueue(w http.ResponseWriter, r *http.Request) {
 	k := mux.Vars(r)["key"]
 
-	m, err := plexServer.GetMediaMetadata(k)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	meta, err := plexServer.GetMetadataWithParts(k)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	l := fmt.Sprintf("Queuing download of media (%s - %s)", k, m.ConcatTitles())
-	log.Printf("[API] %v", l)
-
 	for _, m := range meta {
-		hub.broadcast <- &DownloadUpdate{
-			MessageType:     "download-start",
-			Title:           m.ConcatTitles(),
-			BytesDownloaded: 0,
-			TotalBytes:      0,
-		}
+		log.Printf("[API] Queuing download of media (%s - %s)", k, m.ConcatTitles())
 
-		go func(m plex.Metadata) {
-			requestQueue <- DownloadRequest{
-				Metadata: m,
-				Part:     m.Media[0].Part[0],
-			}
-		}(m)
+		queueDownload(m)
 	}
 
-	j, _ := json.Marshal(apiPostResponse{Message: l})
+	j, _ := json.Marshal(apiPostResponse{Message: "Download queued"})
 	_, _ = w.Write(j)
+}
+
+func queueDownload(m plex.Metadata) {
+	hub.broadcast <- &DownloadUpdate{
+		MessageType:     "download-start",
+		Title:           m.ConcatTitles(),
+		BytesDownloaded: 0,
+		TotalBytes:      0,
+	}
+
+	go func(m plex.Metadata) {
+		requestQueue <- DownloadRequest{
+			Metadata: m,
+			Part:     m.Media[0].Part[0],
+		}
+	}(m)
 }
 
 func getSearch(w http.ResponseWriter, r *http.Request) {
@@ -122,16 +120,18 @@ func postPersist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tvdbid, err := plexServer.GetTvdbId(m)
+	tvdbid, err := plexServer.GetDbId(m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	plexId, _ := strconv.ParseUint(k, 10, 64)
 	err = store.Add(storage.Entry{
 		Category: m.Type,
 		Title:    m.Title,
-		TVDB:     tvdbid,
+		DBId:     tvdbid,
+		PlexKey:  uint(plexId),
 	})
 	var dupErr *storage.DuplicateEntryError
 	if err != nil && errors.As(err, &dupErr) {
@@ -159,7 +159,7 @@ func deletePersist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tvdbid, err := plexServer.GetTvdbId(m)
+	tvdbid, err := plexServer.GetDbId(m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

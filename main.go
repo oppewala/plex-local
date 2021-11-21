@@ -42,14 +42,19 @@ func main() {
 		log.Fatal("Plex Token and URL must be provided as an environment variable or command line argument")
 	}
 
+	plexServer = plex.NewServer(plexUrl, plexToken)
 	go func() {
-		err := populateTitles()
-		if err != nil {
-			log.Printf("[Main] Failed to populate titles: %v", err)
+		for {
+			err := populateTitles()
+			if err != nil {
+				log.Printf("[Main] Failed to populate titles: %v", err)
+			}
+
+			// TODO: Refresh when page is loaded to reduce load when not in active use
+			time.Sleep(time.Minute * 30)
 		}
 	}()
 
-	plexServer = plex.NewServer(plexUrl, plexToken)
 	store = storage.ConnectStorage(storageConnectionString)
 
 	hub = newHub()
@@ -61,6 +66,8 @@ func main() {
 			time.Sleep(time.Second)
 		}
 	}()
+
+	newQueueConsumer(storageConnectionString)
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/api/library", getLibraries).Methods(http.MethodGet)
